@@ -172,6 +172,20 @@ Not required by the normal EagleCast application but available for future experi
 
 Goal: the first useful EagleCast build already displays the camera and fixes the crooked image.
 
+## Current development slice - POC A
+
+The first implementation slice is now targeting the complete basic live path rather than a framework-only skeleton:
+
+- [ ] Verify FFmpeg launches from the known local installation
+- [ ] Verify multicast EagleEye video appears in EagleCast
+- [ ] Verify stale decoded frames are replaced rather than queued
+- [ ] Verify live manual roll correction
+- [ ] Verify automatic crop compensation during roll correction
+- [ ] Verify `/api/state` polling against the Raspberry Pi
+- [ ] Verify pan/tilt/zoom feedback follows movement made with the physical remote
+
+Roadmap items below remain unchecked until the implementation has been tested against the real camera.
+
 - [ ] Create basic Windows GUI
 - [ ] Connect to the EagleEye multicast stream
 - [ ] Decode incoming video
