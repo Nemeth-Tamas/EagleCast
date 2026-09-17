@@ -175,110 +175,129 @@ impl EagleCastApp {
 }
 
 impl eframe::App for EagleCastApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let stream_snapshot = self.stream.snapshot();
         let ptz_snapshot = self.ptz.snapshot();
+        let ctx = ui.ctx().clone();
 
-        self.update_texture(ctx, &stream_snapshot);
+        self.update_texture(&ctx, &stream_snapshot);
         self.update_fps(stream_snapshot.frames_received);
 
-        egui::TopBottomPanel::top("top_bar").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.heading("EagleCast");
-                ui.separator();
-                ui.label("Polycom EagleEye live processor");
-            });
+        ui.horizontal(|ui| {
+            ui.heading("EagleCast");
+            ui.separator();
+            ui.label("Polycom EagleEye live processor");
         });
 
-        egui::SidePanel::right("controls")
-            .resizable(false)
-            .default_width(300.0)
-            .show(ctx, |ui| {
-                ui.heading("Video");
+        ui.separator();
 
-                match stream_snapshot.status {
-                    StreamStatus::Starting => {
-                        ui.label(egui::RichText::new("STREAM STARTING").strong());
-                    }
-                    StreamStatus::Live => {
-                        ui.label(egui::RichText::new("STREAM LIVE").strong());
-                    }
-                    StreamStatus::Offline => {
-                        ui.label(egui::RichText::new("STREAM OFFLINE").strong());
-                    }
-                }
+        let status_reserve = 30.0;
+        let content_height = (ui.available_height() - status_reserve).max(120.0);
+        let content_width = ui.available_width();
 
-                ui.label(format!("Decoded: {:.1} FPS", self.input_fps));
+        ui.allocate_ui_with_layout(
+            egui::vec2(content_width, content_height),
+            egui::Layout::left_to_right(egui::Align::TOP),
+            |ui| {
+                let controls_width = 300.0;
+                let preview_width = (ui.available_width() - controls_width - 12.0).max(160.0);
 
-                ui.label(format!("Presented: {:.1} FPS", self.output_fps));
-
-                ui.label(format!("Working size: {} x {}", FRAME_WIDTH, FRAME_HEIGHT));
-
-                if let Some(frame) = stream_snapshot.latest_frame.as_ref() {
-                    ui.label(format!(
-                        "Latest frame age: {} ms",
-                        frame.received_at.elapsed().as_millis()
-                    ));
-                }
-
-                if let Some(error) = stream_snapshot.error.as_ref() {
-                    ui.add_space(4.0);
-                    ui.label(error);
-                }
-
-                ui.add_space(12.0);
-                ui.separator();
-
-                self.draw_ptz(ui, &ptz_snapshot);
-
-                ui.add_space(12.0);
-                ui.separator();
-
-                ui.heading("Stabilization");
-
-                ui.add(
-                    egui::Slider::new(&mut self.roll_degrees, -30.0..=30.0)
-                        .text("Roll")
-                        .suffix(" deg")
-                        .step_by(0.1),
+                ui.allocate_ui_with_layout(
+                    egui::vec2(preview_width, content_height),
+                    egui::Layout::top_down(egui::Align::Center),
+                    |ui| {
+                        self.draw_video(ui);
+                    },
                 );
 
-                ui.label(format!(
-                    "Auto-crop scale: {:.3}x",
-                    cover_scale(self.roll_degrees)
-                ));
-
-                if ui.button("Reset roll").clicked() {
-                    self.roll_degrees = 0.0;
-                }
-            });
-
-        egui::TopBottomPanel::bottom("status_bar").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.label(format!(
-                    "Frames decoded: {}",
-                    stream_snapshot.frames_received
-                ));
-
                 ui.separator();
 
-                ui.label(format!("Roll: {:.1} deg", self.roll_degrees));
+                ui.allocate_ui_with_layout(
+                    egui::vec2(controls_width, content_height),
+                    egui::Layout::top_down(egui::Align::LEFT),
+                    |ui| {
+                        ui.heading("Video");
 
-                ui.separator();
+                        match stream_snapshot.status {
+                            StreamStatus::Starting => {
+                                ui.label(egui::RichText::new("STREAM STARTING").strong());
+                            }
+                            StreamStatus::Live => {
+                                ui.label(egui::RichText::new("STREAM LIVE").strong());
+                            }
+                            StreamStatus::Offline => {
+                                ui.label(egui::RichText::new("STREAM OFFLINE").strong());
+                            }
+                        }
 
-                if let Some(camera) = ptz_snapshot.camera.as_ref() {
-                    ui.label(format!(
-                        "PTZ: P {:.1} / T {:.1} / Z {:.1}%",
-                        camera.pan_degrees, camera.tilt_degrees, camera.zoom_percent
-                    ));
-                } else {
-                    ui.label("PTZ: unavailable");
-                }
-            });
-        });
+                        ui.label(format!("Decoded: {:.1} FPS", self.input_fps));
+                        ui.label(format!("Presented: {:.1} FPS", self.output_fps));
+                        ui.label(format!("Working size: {} x {}", FRAME_WIDTH, FRAME_HEIGHT));
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            self.draw_video(ui);
+                        if let Some(frame) = stream_snapshot.latest_frame.as_ref() {
+                            ui.label(format!(
+                                "Latest frame age: {} ms",
+                                frame.received_at.elapsed().as_millis()
+                            ));
+                        }
+
+                        if let Some(error) = stream_snapshot.error.as_ref() {
+                            ui.add_space(4.0);
+                            ui.label(error);
+                        }
+
+                        ui.add_space(12.0);
+                        ui.separator();
+
+                        self.draw_ptz(ui, &ptz_snapshot);
+
+                        ui.add_space(12.0);
+                        ui.separator();
+
+                        ui.heading("Stabilization");
+
+                        ui.add(
+                            egui::Slider::new(&mut self.roll_degrees, -30.0..=30.0)
+                                .text("Roll")
+                                .suffix(" deg")
+                                .step_by(0.1),
+                        );
+
+                        ui.label(format!(
+                            "Auto-crop scale: {:.3}x",
+                            cover_scale(self.roll_degrees)
+                        ));
+
+                        if ui.button("Reset roll").clicked() {
+                            self.roll_degrees = 0.0;
+                        }
+                    },
+                );
+            },
+        );
+
+        ui.separator();
+
+        ui.horizontal(|ui| {
+            ui.label(format!(
+                "Frames decoded: {}",
+                stream_snapshot.frames_received
+            ));
+
+            ui.separator();
+
+            ui.label(format!("Roll: {:.1} deg", self.roll_degrees));
+
+            ui.separator();
+
+            if let Some(camera) = ptz_snapshot.camera.as_ref() {
+                ui.label(format!(
+                    "PTZ: P {:.1} / T {:.1} / Z {:.1}%",
+                    camera.pan_degrees, camera.tilt_degrees, camera.zoom_percent
+                ));
+            } else {
+                ui.label("PTZ: unavailable");
+            }
         });
 
         ctx.request_repaint_after(Duration::from_millis(8));

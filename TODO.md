@@ -176,6 +176,8 @@ Goal: the first useful EagleCast build already displays the camera and fixes the
 
 The first implementation slice is now targeting the complete basic live path rather than a framework-only skeleton:
 
+- [ ] Verify EagleCast's eframe 0.36 root-UI shell builds and runs on Windows
+- [ ] Verify the Windows mixed-DPI manifest behaves correctly across displays/scaling levels
 - [ ] Verify FFmpeg launches from the known local installation
 - [ ] Verify multicast EagleEye video appears in EagleCast
 - [ ] Verify stale decoded frames are replaced rather than queued
